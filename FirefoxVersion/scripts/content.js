@@ -296,6 +296,7 @@
                         <span class='cait_progressInfo'>(Loading...)</span>
                         <ul>
                             <li data-cait_type='oobabooga'>Download as Oobabooga chat</li>
+							<li data-cait_type='tavern'>Download as Tavern chat</li>
                             <li data-cait_type='example_chat'>Download as example chat/definition</li>
 							<li data-cait_type='tavern'>Download as TavernAI chat</li>
                         </ul>
@@ -346,6 +347,11 @@
 
         ch_header.querySelector('.cai_tools-cont [data-cait_type="oobabooga"]').addEventListener('click', () => {
             const args = { extId: currentConverExtId, downloadType: 'oobabooga' };
+            DownloadConversation(args);
+            close_caiToolsModal(ch_header);
+        });
+		ch_header.querySelector('.cai_tools-cont [data-cait_type="tavern"]').addEventListener('click', () => {
+            const args = { extId: currentConverExtId, downloadType: 'tavern' };
             DownloadConversation(args);
             close_caiToolsModal(ch_header);
         });
@@ -488,6 +494,9 @@
             case "oobabooga":
                 DownloadConversation_Oobabooga(chatData, args);
                 break;
+            case "tavern":
+                DownloadConversation_Tavern(chatData, args);
+                break;
             case "example_chat":
                 DownloadConversation_ChatExample(chatData, args);
                 break;
@@ -528,6 +537,61 @@
         link.download = `${args.extId.substring(0, 8)}_${args.downloadType}_Chat.json`;
         link.click();
     }
+
+	function DownloadConversation_Tavern(chatData, args) {
+	  const messages = [];
+	  const userName = 'You';
+
+	  chatData.filter(msg => msg.is_alternative === false)
+		.forEach(msg => {
+		  const name = msg.src__name;
+		  const message = msg.text;
+		  messages.push({ name, message });
+		});
+
+	  const characterName = messages[0].name;
+	  const createDate = Date.now();
+	  const initialPart = JSON.stringify({
+		user_name: userName,
+		character_name: characterName,
+		create_date: createDate,
+	  });
+
+	  let secondSpeaker = null;
+	  const outputLines = [initialPart];
+
+	  messages.forEach((message, index) => {
+		if (index === 1 && !secondSpeaker) {
+		  secondSpeaker = message.name;
+		}
+
+		if (message.name === secondSpeaker) {
+		  message.name = userName;
+		}
+
+		const isUser = message.name === userName;
+		const sendDate = Date.now();
+
+		const formattedMessage = JSON.stringify({
+		  name: message.name,
+		  is_user: isUser,
+		  is_name: true,
+		  send_date: sendDate,
+		  mes: message.message,
+		});
+
+		outputLines.push(formattedMessage);
+	  });
+
+	  const outputString = outputLines.join('\n');
+
+	  const blob = new Blob([outputString], { type: 'application/json' });
+	  const url = URL.createObjectURL(blob);
+	  const link = document.createElement('a');
+	  link.href = url;
+	  link.download = `${args.extId.substring(0, 8)}_${args.downloadType}_Chat.jsonl`;
+	  link.click();
+	}
 
     function DownloadConversation_ChatExample(chatData, args) {
         const messageList = [];
@@ -601,7 +665,6 @@
 	  link.download = `${args.extId.substring(0, 8)}_${args.downloadType}_Chat.jsonl`;
 	  link.click();
 	}
-
 
     // HISTORY
 
